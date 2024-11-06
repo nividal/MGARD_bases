@@ -193,16 +193,18 @@ class MGARD(object):
 				s = 2 ** ( mt.ceil(mt.log2(s)) ) + 1
 			d = max(s,d)
 
-			self.u_mg = np.zeros( tuple([d*u.ndim]) )
-			self.u_mg[0:x,0:y]=u.copy()
+		self.u_mg = np.zeros( tuple([d]*u.ndim) )
+		sl = tuple([slice(0,u.shape[i]) for i in range(u.ndim)])
+		self.u_mg[sl]=u.copy()
 
-			self.u=self.u_mg.copy()
-			self.grid = [ np.linspace(0,1,d) for i in range(u.ndim) ]
+		self.u=self.u_mg.copy()
+		self.grid = [ np.linspace(0,1,d) for i in range(u.ndim) ]
 
 
 	def get_u(self):
 		ind = tuple( [slice(0,self.original_shape[i]) for i in range(u.ndim) ])
 		return self.u_mg[ind].copy()
+	
 
 
 	def interpolate_1d(self, grid, order, indc, dind, ind_f, ind_c):

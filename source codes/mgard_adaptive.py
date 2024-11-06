@@ -4,7 +4,7 @@ from tools import * #Plotting functions, metrics, dataset generation
 
 
 
-def init_grid(u:ndarray):
+def init_grid(u:np.ndarray):
 	if u.ndim == 1:
 		grid=[np.linspace(0,1,u.shape[0])]
 	if u.ndim ==2:
@@ -64,7 +64,7 @@ def maj_score(vote,orders):
 
 class MGARD_adaptive(object):
 
-	def __init__(self, signature:double,min_shape:list[int], fun_cut,fun_vote,cell_size:int,fun_compression):
+	def __init__(self, signature:float,min_shape:list[int], fun_cut,fun_vote,cell_size:int,orders_list):
 		#self.blocks=blocks
 		self.signature=signature
 		self.min_shape=min_shape
@@ -74,7 +74,8 @@ class MGARD_adaptive(object):
 
 		self.cell_size=cell_size
 
-		self.fun_compression=fun_compression
+		self.orders_list = orders_list
+
 
 	##
 	def iscutable(self,shape):
@@ -88,10 +89,10 @@ class MGARD_adaptive(object):
 	## 
 
 	def compute_vote(self,u):
-		shape = tuple([ int(u.shape[i]/self.cell_size) for i in u.ndim  ])
+		shape = tuple([ int(u.shape[i]/self.cell_size) for i in range(u.ndim)  ])
 		vote_grid = np.empty(shape)
 		for it in np.ndindex(shape):
-			ind = tuple( [slice(  it[i]*cell ,  (it[i]+1)*cell   , 1   ) for i in u.ndim] )
+			ind = tuple( [slice(  it[i]*self.cell_size ,  (it[i]+1)*self.cell_size   , 1   ) for i in range(u.ndim)] )
 			bv = mt.inf
 			for orders in self.orders_list:
 				c=interpolation_error(u[ ind ],orders)			
@@ -247,8 +248,3 @@ class MGARD_adaptive(object):
 			set_grid(u,coord[i],shape[i],mg.get_u)
 		return u
 		#reconstruct u
-
-
-
-	def example_pipeline()
-	
