@@ -54,6 +54,11 @@ def split_shape( shape,coord,pos  ):
 			shape[i] = pos[i]-coord[i]
 	return shape,s2
 
+
+
+
+
+
 def maj_score(vote,orders):
 	sc = 0
 	for e,v in np.ndenumerate(vote):
@@ -155,12 +160,11 @@ class MGARD_adaptive(object):
 
 			if self.iscutable(shape_list[i]): #has at least one dimension larger than the minimum shape
 				if sign < self.thr: #threshold not reached
-					pos=self.fun_cut(vote_grid,self.min_shape)
+					c,pos=self.fun_cut(vote_grid,self.min_shape)
 
-					if pos:
+					if c:
 
 						#r1,r2=split_grid(res_list[i],pos)
-
 						coord_list = coord_list + [  add_coord(coord_list[i],pos)   ]
 						s1,s2 = split_shape( shape_list[i],coord_list[i],pos  )
 						shape_list[i] = s1
@@ -212,39 +216,27 @@ class MGARD_adaptive(object):
 
 		return coord_list,shape_list,vote_list
 	
-	def mgard_list(u,coord_list,shape_list,vote_list):
-		mglist = []
-		for i in range(len(coord_list)):
-			ui=get_grid(grid,coord[i],shape[i])
-			grid = [np.linspace(0,1,shape[i][d]) for d in range(u.ndim) ] 
-			mg=MGARD(grid,ui,order=[0]*dim,order2=[0]*dim)
-			mglist.append(mg)
-
-		return mglist
-
-	def mgard_decompose_list(mglist,coord_list,shape_list): 
-		for i in range(len(mglist)):
-			mg.decompose_full()
-
-	def adaptive_decompose(u,coord_list,shape_list,vote_list):
-		for i in range(len(coord_list)):
-			ui=get_grid(u,coord[i],shape[i])
-			grid = [np.linspace(0,1,shape[i][d]) for d in range(u.ndim) ] 
-			mg=MGARD(grid,ui,order=vote_list[i],order2=vote_list[i])
-			mg.decompose_full()
-
-			set_grid(u,coord[i],shape[i],mg.get_u)
-		return u
 
 
-	def adaptive_recompose(mglist,coord_lis,vote_list):
-		for i in range(len(coord_list)):
-			ui=get_grid(u,coord[i],shape[i])
-			grid = [np.linspace(0,1,shape[i][d]) for d in range(u.ndim) ] 
-			mg=MGARD(grid,ui,order=vote_list[i],order2=vote_list[i])
-			mg.decompose_grid()
-			mg.mgard_recompose_full()
+def adaptive_decompose(u,coord_list,shape_list,vote_list):
+	for i in range(len(coord_list)):
+		ui=get_grid(u,coord_list[i],shape_list[i])
+		grid = [np.linspace(0,1,shape_list[i][d]) for d in range(u.ndim) ] 
+		mg=MGARD(grid,ui,order=vote_list[i],order2=vote_list[i])
+		mg.decompose_full()
 
-			set_grid(u,coord[i],shape[i],mg.get_u)
-		return u
+		set_grid(u,coord_list[i],shape_list[i],mg.get_u())
+	return u
+
+
+def adaptive_recompose(u,coord_list,shape_list,vote_list):
+	for i in range(len(coord_list)):
+		ui=get_grid(u,coord_list[i],shape_list[i])
+		grid = [np.linspace(0,1,shape_list[i][d]) for d in range(u.ndim) ] 
+		mg=MGARD(grid,ui,order=vote_list[i],order2=vote_list[i])
+		mg.decompose_grid()
+		mg.recompose_full()
+
+		set_grid(u,coord_list[i],shape_list[i],mg.get_u())
+	return u
 		#reconstruct u

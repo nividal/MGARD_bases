@@ -202,7 +202,7 @@ class MGARD(object):
 
 
 	def get_u(self):
-		ind = tuple( [slice(0,self.original_shape[i]) for i in range(u.ndim) ])
+		ind = tuple( [slice(0,self.original_shape[i]) for i in range(self.ndim) ])
 		return self.u_mg[ind].copy()
 	
 

@@ -29,7 +29,7 @@ def cutting_gradient(votes,min_shape,pick=0):
 	max_g = 0
 	d=0
 	x=0
-
+	c=False
 	for i in range(votes.ndim):
 		if votes.shape[i] > min_shape[i]:
 			lo = min_shape[i]
@@ -44,9 +44,10 @@ def cutting_gradient(votes,min_shape,pick=0):
 				max_g = m
 				d = i
 				x = lo+argmax(grad[lo:hi])
+				c = True
 	l = [0]*votes.ndim
 	l[d]=x
-	return l
+	return c,l
 
 
 def compare(f1,f2):
@@ -73,20 +74,14 @@ def example():
 	u=np.load("data.npy")
 
 	orders_list= [  [0]*u.ndim, [1]*u.ndim, [2]*u.ndim ]
-
-	print("Init")
 	
 	framework = MGARD_adaptive(thr=0.8,min_shape=[20]*u.ndim, fun_cut=cutting_gradient,fun_vote=fun_entropy,cell_size=1,orders_list=orders_list)
 	
 	#Grid
-	print("def blocks")
 	coord_list,shape_list,vote_list = framework.decompose_blocks(u)
-	mglist=framework.mgard_list(u,coord_list,shape_list,vote_list)
-	print("decompose")
-	u=adaptive_decompose(u,coord_list,shape_list)
+	u=adaptive_decompose(u,coord_list,shape_list,vote_list)
 	compress_zstd(u)
-	print("recompose")
-	u=adaptive_recompose(u,coord_list,vote_list)
+	u=adaptive_recompose(u,coord_list,shape_list,vote_list)
 
 	
 
