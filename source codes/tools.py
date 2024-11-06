@@ -68,7 +68,6 @@ def compute_entropy(u,bins=1000,span=0,file=None):
 		return sc.entropy(hist, base=2)
 
 def entropy(u,rule='Sturge'):
-	print(f"size:{u.size}, max:{np.max(u)}, min:{np.min(u)}, std: {np.std(u)}\n")
 	Dx=1000
 	#https://stats.stackexchange.com/questions/179674/number-of-bins-when-computing-mutual-information
 	if rule == 'Sturge': #for large n

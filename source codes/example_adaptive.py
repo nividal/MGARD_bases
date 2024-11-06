@@ -30,7 +30,7 @@ def cutting_gradient(votes,min_shape,pick=0):
 	d=0
 	x=0
 
-	for i in votes.ndim:
+	for i in range(votes.ndim):
 		if votes.shape[i] > min_shape[i]:
 			lo = min_shape[i]
 			hi = votes.shape[i]-min_shape[i]
@@ -64,7 +64,7 @@ def compare(f1,f2):
 		f.write(f"Error Linf (rel):{e_1}\t(abs):{e_a}\tL2 (rel):{e_2}\n")
 
 def fun_entropy(u):
-	return -1 * entropy_2(u)
+	return -1 * entropy(u)
 
 
 def example():
@@ -73,10 +73,13 @@ def example():
 	u=np.load("data.npy")
 
 	orders_list= [  [0]*u.ndim, [1]*u.ndim, [2]*u.ndim ]
+
+	print("Init")
 	
-	framework = MGARD_adaptive(signature=0.8,min_shape=[20]*u.ndim, fun_cut=cutting_gradient,fun_vote=fun_entropy,cell_size=1,orders_list=orders_list)
+	framework = MGARD_adaptive(thr=0.8,min_shape=[20]*u.ndim, fun_cut=cutting_gradient,fun_vote=fun_entropy,cell_size=1,orders_list=orders_list)
 	
 	#Grid
+	print("def blocks")
 	coord_list,shape_list,vote_list = framework.decompose_blocks(u)
 	mglist=framework.mgard_list(u,coord_list,shape_list,vote_list)
 	print("decompose")

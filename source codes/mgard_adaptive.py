@@ -4,43 +4,39 @@ from tools import * #Plotting functions, metrics, dataset generation
 
 
 
-def init_grid(u:np.ndarray):
-	if u.ndim == 1:
-		grid=[np.linspace(0,1,u.shape[0])]
-	if u.ndim ==2:
-		grid=[np.linspace(0,1,u.shape[0]),np.linspace(0,1,u.shape[1])]
-	if u.ndim == 3:
-		grid=[np.linspace(0,1,u.shape[0]),np.linspace(0,1,u.shape[1]),np.linspace(0,1,u.shape[2])]
-	return grid		
 
 
 def interpolation_error(u:np.ndarray,orders=list[int]):
 	#orders is a list of interpolation orders sets (one for each dimension)
-	grid = init_grid(u)
+	grid = [np.linspace(0,1,u.shape[i]) for i in range(u.ndim)]
 
 	mg=MGARD(grid,u.copy(),order=orders,order2=orders)
 	#decompose 1st level and get coefficients
 	_,_,dind,_=mg.decompose_level(1)
 
-	if dim == 1:
+	if u.ndim == 1:
 		coarse=mg.u_mg[dind[0]].copy()
-	elif dim == 2:
+	elif u.ndim == 2:
 		coarse=mg.u_mg[dind[0][:,None],dind[1]].copy()
-	elif dim == 3:
+	elif u.ndim == 3:
 		coarse=mg.u_mg[dind[0][:,None,None],dind[1][None,:,None],dind[2]].copy()
-	elif dim == 4:
+	elif u.ndim == 4:
 		coarse=mg.u_mg[dind[0][:,None,None,None],dind[1][None,:,None,None],dind[2][None,None,:,None],dind[3]].copy()	
 	return coarse
 
 #Voting functions returning a vote and a signature from coarse coefficients
 
-def get_grid(grid,coord,shape):
-	sl = tuple( (coord[i],coord[i] + shape[i],1) for  i in range(grid.ndim)  )
+def get_grid(grid,coord:tuple,shape:tuple):
+	#for some reasons
+	coord=tuple(coord)
+	shape=tuple(shape)
+
+	sl = tuple( [slice(coord[i],coord[i] + shape[i],1) for  i in range(grid.ndim)] )
 	return grid[sl]
 
 
 def set_grid(grid,coord,shape,u):
-	sl = tuple( (coord[i],coord[i] + shape[i],1) for  i in range(grid.ndim)  )
+	sl = tuple( [slice(coord[i],coord[i] + shape[i],1) for  i in range(grid.ndim)] )
 	grid[sl] = u
 	return grid 
 
@@ -54,19 +50,22 @@ def split_shape( shape,coord,pos  ):
 	s2 = shape
 	for i in range(len(pos)):
 		if pos[i]:
-			shape[i] = pos[i]-coord[i]
 			s2= shape[i] - pos[i] + coord[i]
+			shape[i] = pos[i]-coord[i]
 	return shape,s2
 
 def maj_score(vote,orders):
-	return np.count_nonzero(vote == orders)/vote.size
+	sc = 0
+	for e,v in np.ndenumerate(vote):
+		sc += (v == tuple(orders))
+	return sc/vote.size
 
 
 class MGARD_adaptive(object):
 
-	def __init__(self, signature:float,min_shape:list[int], fun_cut,fun_vote,cell_size:int,orders_list):
+	def __init__(self, thr:float,min_shape:list[int], fun_cut,fun_vote,cell_size:int,orders_list):
 		#self.blocks=blocks
-		self.signature=signature
+		self.thr=thr
 		self.min_shape=min_shape
 
 		self.fun_cut=fun_cut #return the axis coordinate where to cut ie (0,0,...,0,x,0,...,0)
@@ -89,18 +88,18 @@ class MGARD_adaptive(object):
 	## 
 
 	def compute_vote(self,u):
-		shape = tuple([ int(u.shape[i]/self.cell_size) for i in range(u.ndim)  ])
-		vote_grid = np.empty(shape)
-		for it in np.ndindex(shape):
-			ind = tuple( [slice(  it[i]*self.cell_size ,  (it[i]+1)*self.cell_size   , 1   ) for i in range(u.ndim)] )
-			bv = mt.inf
-			for orders in self.orders_list:
-				c=interpolation_error(u[ ind ],orders)			
-				v = np.linalg.norm(abs(c),ord=2)
-				if v< bv:
-					bv = v
+		shape = tuple([ int(u.shape[i]/(2*self.cell_size)) for i in range(u.ndim)  ])
+		vote_grid = np.empty(shape,dtype=tuple)
+		bv = np.empty(shape) 
+		for orders in self.orders_list:
+			c=interpolation_error(u,orders)
+			for it in np.ndindex(shape):
+				ind = tuple( [slice(  it[i]*self.cell_size ,  (it[i]+1)*self.cell_size   , 1   ) for i in range(u.ndim)] )
+				v = np.linalg.norm(abs(c[ind]),ord=2)
+				if v < bv[it]:
+					bv[it] = v
 					cf=c
-					vote_grid[ it ] = orders
+					vote_grid[it] = tuple(orders)
 		return vote_grid
 
 	##
@@ -127,10 +126,13 @@ class MGARD_adaptive(object):
 		#v,sign,_=self.map_vote(u)
 
 		#grid_list = [u]
-		vote_list=[ [0] *u.ndim ]
+		vote_list=[ tuple([0] *u.ndim) ]
 		sign_list=[-1]
-		residuals = []
-		coord_list=[ [0]*u.ndim ]
+
+		s2 = tuple([ int(u.shape[d]/2) for d in range(u.ndim)  ])
+		residuals = np.empty(s2)
+
+		coord_list=[ tuple([0]*u.ndim) ]
 		shape_list= [ u.shape ]
 		vote_grid = self.compute_vote(u)
 
@@ -138,23 +140,21 @@ class MGARD_adaptive(object):
 		i=0
 		while i<len(coord_list):
 			grid=get_grid(u,coord_list[i],shape_list[i])
-
 			v,res=self.map_vote(grid)
 
-
-			cv = (coord_list[i][j]/2 for j in u.ndim)
-			sv = (shape_list[i][j]/2 for j in u.ndim)
+			cv = tuple([mt.ceil(coord_list[i][j]/2) for j in range(u.ndim)])
+			sv = tuple([mt.ceil(shape_list[i][j]/2) for j in range(u.ndim)])
 
 			sign=maj_score(get_grid(vote_grid,cv,sv),v)
 			vote_list[i]=v
 			#sign_list[i]=sign
 
 			#Update residuals
-			ind = tuple(  [ slice( coords[i],coords[i]+shape_list[i],1) for i in range(u.ndim)  ]  )
+			ind = tuple(  [ slice( cv[k],cv[k]+sv[k],1) for k in range(u.ndim)  ]  )
 			residuals[ind] = res
 
 			if self.iscutable(shape_list[i]): #has at least one dimension larger than the minimum shape
-				if sign < self.threshold: #threshold not reached
+				if sign < self.thr: #threshold not reached
 					pos=self.fun_cut(vote_grid,self.min_shape)
 
 					if pos:
