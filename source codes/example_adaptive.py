@@ -77,7 +77,7 @@ def example():
 	
 	framework = MGARD_adaptive(thr=0.8,min_shape=[20]*u.ndim, fun_cut=cutting_gradient,fun_vote=fun_entropy,cell_size=1,orders_list=orders_list)
 	
-	#Grid
+	
 	coord_list,shape_list,vote_list = framework.decompose_blocks(u)
 	u=adaptive_decompose(u,coord_list,shape_list,vote_list)
 	compress_zstd(u)

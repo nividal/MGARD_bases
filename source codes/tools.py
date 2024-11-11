@@ -286,6 +286,30 @@ def plot_relative(grp,name,xlabel='',ylabel='',scale='',title='',labels=[]):
 	return 0
 
 
+#
+# function decompose blocks return coordinate and shape of the residual grid (1/2 size of the original data)
+def plot_grid(u,coord_list,shape_list,vote_list,path,name):
+	plt.figure()
+	plt.imshow(u)
+	ax.invert_yaxis()
+	for r in range(len(coord_list)):
+			x,y,z = coord_list[r]
+			lx,ly = shape_list[r]
+			v = vote_list[r]
+			xs = [y,y+ly,y+ly,y,y]
+			ys = [x,x,x+lx,x+lx,x]
+			ax.plot(xs, ys, color="red")
+			ax.text(y+ly/2,x+lx/2,v)
+	plt.gca().set_box_aspect(1)
+	spath=Path(path)
+	spath.mkdir(parents=True, exist_ok=True)
+	plt.savefig(f"{path}/{name}", dpi=1000, bbox_inches='tight')
+	plt.clf()
+	plt.close()
+	gc.collect()
+	return 0
+
+
 
 
 ###################################################################

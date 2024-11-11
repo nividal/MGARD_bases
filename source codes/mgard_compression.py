@@ -146,7 +146,24 @@ def save_arrays(arrays,compression = 'zstd', file='test'):
 		if compression == 'zstd':
 			size.append(compress_zstd(arrays[i],f'{file}_{i}.npy'))
 			os.remove(f'{file}_{i}.npy')
-
-
 	return size
+
+
+
+	##### MGARD workflow
+def mgard_external_compression(u,executable="/ccs/home/vidaln/MGARD/install-serial/bin/mgard-cpu",tempfile="data.bin",outputfile="dc.bin"):
+	with open(tempfile,"w") as f:
+		u.tofile(f,sep="",format='%f')
+	p=subprocess.run([executable, "-z", "-i", "data.bin", "-c", "dc.bin", "-t", prec, "-n","2", str(u.shape[0]), str(u.shape[1]),"-m", "abs", "-e", str(error_abs), "-s","0","-l", "2", "-d", "auto"],stdout=stdout_f,stderr=stderr_f,env=env_repl)
+	with open(outputfile,"rb") as f:
+		u2=np.fromfile(f,dtype="f")
+	return u2
+
+def mgard_external_decompression(u,executable="/ccs/home/vidaln/MGARD/install-serial/bin/mgard-cpu",input_file="dc.bin",tempfile="data_dc.bin"):
+	with open(tempfile,"w") as f:
+		u.tofile(f,sep="",format='%f')
+	p=subprocess.run([executable, "-x", "-c", "dc.bin", "-d", "data_dc.bin", "-t", prec, "-n","2", str(u.shape[0]), str(u.shape[1]),"-m", "abs", "-e", str(error_abs), "-s","0","-l", "2", "-d", "auto"],stdout=stdout_f,stderr=stderr_f,env=env_repl)
+	with open(tempfile,"rb") as f:
+		u2=np.fromfile(f,dtype="f")
+	return u2
 
